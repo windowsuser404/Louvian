@@ -1,4 +1,4 @@
-#include <bool.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <omp.h>
 #include <stdlib.h>
@@ -31,26 +31,26 @@ Node* createNode(int i){
 	return temp;
 }
 
-void addEdge(src, dest){
+void addEdge(int src, int dest){
 	Node* temp = nodes[src];
 	temp->edges++;
 	if(temp->edges==1){
-		temp->Edgelist = (int*)malloc(edges*sizeof(int))
+		temp->Edgelist = (int*)malloc(temp->edges*sizeof(int));
 	}
 	else{
 		temp->Edgelist = realloc(temp->Edgelist, temp->edges*sizeof(int));
 	}
-	temp->Edgelist[size-1] = dest;
+	temp->Edgelist[temp->edges-1] = dest;
 	//
-	Node* temp = nodes[dest];
+	temp = nodes[dest];
 	temp->edges++;
 	if(temp->edges==1){
-		temp->Edgelist = (int*)malloc(edges*sizeof(int))
+		temp->Edgelist = (int*)malloc(temp->edges*sizeof(int));
 	}
 	else{
 		temp->Edgelist = realloc(temp->Edgelist, temp->edges*sizeof(int));
 	}
-	temp->Edgelist[size-1] = src;
+	temp->Edgelist[temp->edges-1] = src;
 	num_edges+=1; //in modularity formula we should use num_edges/2, hence i am increasing only by one even though two edges are added
 }
 
@@ -59,8 +59,8 @@ community* create_community(int i){
 	temp->count=1;
 //	temp->degree = nodes[i]->edges;
 	temp->max=10;
-	temp->list = (int*)malloc(max*sizeof(int));
-	temp->list[0] = i
+	temp->list = (int*)malloc(temp->max*sizeof(int));
+	temp->list[0] = i;
 	return temp;
 }
 
@@ -86,12 +86,12 @@ int community_degree(int i){
 	for(int i=0; i<com->count; i++){
 		degree+=nodes[com->list[i]]->edges;
 	}
-	return degree
+	return degree;
 }
 
 int edges_connected(int node, int neighbour){//neighbour is basically the target community member
 	community* nei_com = communities[neighbour];
-	edge_count = 0;
+	int edge_count = 0;
 	for(int i=0;i<nei_com->count;i++){
 		if(is_connected(nei_com->list[i], node)){ //no removal of i assuming no self edges as of now
 			edge_count++;
@@ -107,43 +107,75 @@ int change_modularity(int node, int neighbour){
 }
 
 void insert_in_com(int i, int com){
+	community* target = communities[com];
+	if(target->count == target->max){
+		target->max+=100;
+		target->list = realloc(target->list, target->max*sizeof(int));
+	}
+	target->list[target->count] = i;
+	target->count++;
 }
 
 void remove_frm_com(int i, int com){
+	community* target = communities[com];
+	int index=0;
+	while(index<target->count){
+		if(target->list[index] == i){
+			break;
+		}
+		index++;
+	}
+	while(index<target->count-1){
+		target->list[index] = target->list[index+1];
+	}
+	target->count--;
+	if((target->max-target->count)>100){
+		target->max-=100;
+		target->list = realloc(target->list, target->max*sizeof(int));
+	}
 }
 
 void Louvian(){
 	bool improv = true;
 	while(improv){
 		improv = false;
+		int* old_com = (int*)malloc(num_node*sizeof(int));
+		bool* change_community = (bool*)calloc(num_node, sizeof(bool));//to keep track if a node was changed, if changed we will have to switch communities
 		for(int i=0; i<num_node; i++){
-			int max_com = i;
-			int delQ = 0;
 			Node* node = nodes[i];
+			old_com[i] = node->community;
+			int max_com = node->community;
+			int delQ = 0;
 			for(int j=0; j<node->edges; j++){
 				int newQ = change_modularity(i, node->Edgelist[j]);			
 				if(newQ>delQ){
 					delQ = newQ;
 					max_com = node->Edgelist[j];
 					improv = true;
+					change_community[i] = true;
 				}
-				
 			}
-			if(max_com!=i){
-				
+			node->community = max_com;
+		}
+		for(int i=0; i<num_node; i++){
+			if(change_community[i]){
+				remove_frm_com(i, old_com[i]);
+				insert_in_com(i, nodes[i]->community);
 			}
 		}
+		free(change_community);
+		free(old_com);
 	}
 }
 
-int main(){
+int main(int argc, char *argv[]){
         FILE* file = fopen(argv[1],"r");
         num_node = atoi(argv[2])+1;
         if(file==NULL){
                 printf("File handling error");
                 exit(0);
         }
-        nodes = (Node**)malloc(num_node*sizeof(Mode*))
+        nodes = (Node**)malloc(num_node*sizeof(Node*));
         for (int i = 0; i < num_node; i++) {
             nodes[i] = createNode(i);
         }
