@@ -5,6 +5,8 @@
 #include <limits.h>
 #include <stdbool.h>
 
+const int RUN = 32;
+
 typedef struct{
 	int* Edgelist;
 	int edges;
@@ -23,6 +25,68 @@ int num_node;
 Node** nodes;
 community** communities;
 
+//begin functions for sorting
+void insertionSort(int *arr, int left, int right){
+	for(int i=left+1; i<=right; i++){
+		int k = arr[i];
+		int j = i-1;
+		while(j >= left && arr[j] > key){
+			arr[j+1] = arr[j];
+			j--;
+		}
+		arr[j+1] = k;
+	}
+}
+
+void merge(int *arr, int l, int m, int r){
+	int l1 = m-l+1;
+	int l2 = r-m;
+	int* left = (int*)malloc(len1 * sizeof(int));
+	int* right = (int*)malloc(len2 * sizeof(int));
+
+	for (int i = 0; i<l1; i++){
+		left[i] = arr[l+i];
+	}
+	for (int i = 0; i<l2; i++){
+		right[i] = arr[m +1 +i];
+	}
+
+	int i=0, j=0, k=l;
+	while (i < l1 && j<l2){
+		if(left[i] <= right[j]){
+			arr[k++] = left[i++];
+		}
+		else{
+			arr[k++] = right[j++];
+		}
+	}
+
+	while(i < l1){
+		arr[k++] = left[i++];
+	}
+	while(j < l2){
+		arr[k++] = right[j++];
+	}
+
+	free(left);
+	free(right);
+}
+
+void timSort(int *arr, int size){
+	for (int i = 0; i<size; i+=RUN){
+		insertionSort(arr, i, min((i+RUN-1),(n-1)));
+	}
+	for (int temp = RUN; temp<size; temp = 2*temp){
+		for(int left = 0; left<n ; left+=2*temp){
+			int mid = left+size-1;
+			int right = min((left+2*temp-1),(size-1));
+			if(mid < right){
+				merge(arr, left, mid, right);
+			}
+		}
+	}
+}
+
 Node* createNode(int i){
 	Node* temp = (Node*)malloc(sizeof(Node));
 	temp->Edgelist = NULL;
@@ -30,6 +94,8 @@ Node* createNode(int i){
 	temp->community = i;
 	return temp;
 }
+
+
 
 void addEdge(int src, int dest){
 	Node* temp = nodes[src];
@@ -54,6 +120,12 @@ void addEdge(int src, int dest){
 	num_edges+=1; //in modularity formula we should use num_edges/2, hence i am increasing only by one even though two edges are added
 }
 
+void sort_all(){
+	for(int i=0; i<numnode; i++){
+		timSort(nodes[i]->Edgelist, nodes[i]->edges);
+	}
+}
+
 community* create_community(int i){
 	community* temp = (community*)malloc(sizeof(community));
 	temp->count=1;
@@ -71,15 +143,6 @@ void initialise_Louvian(){
 	}
 }
 
-bool is_connected(int frst, int scnd){
-	for(int i=0; i<nodes[frst]->edges; i++){
-		if(nodes[frst]->Edgelist[i] == scnd){
-			return true;
-		}
-	}
-	return false;
-}
-
 int community_degree(int i){
 	community* com = communities[i];
 	int degree=0;
@@ -87,6 +150,26 @@ int community_degree(int i){
 		degree+=nodes[com->list[i]]->edges;
 	}
 	return degree;
+}
+
+bool is_connected(int com, int node){
+	int left =0;
+	int right = nodes[node]->size;
+	int* arr = nodes[node]->list;
+	while(left<=right){
+		int mid = left + (right-left)/2;
+		
+		if(arr[mid]==com){
+			return true;
+		}		
+		else if(arr[mid] < com){
+			left = mid+1;
+		}
+		else{
+			right = mid-1;
+		}
+	}
+	return false;
 }
 
 int edges_connected(int node, int neighbour){//neighbour is basically the target community member
@@ -109,7 +192,7 @@ int change_modularity(int node, int neighbour){
 void insert_in_com(int i, int com){
 	community* target = communities[com];
 	if(target->count == target->max){
-		target->max+=100;
+		target->max*=2;
 		target->list = realloc(target->list, target->max*sizeof(int));
 	}
 	target->list[target->count] = i;
@@ -129,8 +212,8 @@ void remove_frm_com(int i, int com){
 		target->list[index] = target->list[index+1];
 	}
 	target->count--;
-	if((target->max-target->count)>100){
-		target->max-=100;
+	if((target->max)>2*target->count){
+		target->max/=2;
 		target->list = realloc(target->list, target->max*sizeof(int));
 	}
 }
@@ -185,6 +268,7 @@ int main(int argc, char *argv[]){
         while(fscanf(file, "%d %d", &src, &dest) == 2){
             addEdge(src, dest);
         }
-
+	
+	sort_all();
 
 }
