@@ -30,7 +30,7 @@ void insertionSort(int *arr, int left, int right){
 	for(int i=left+1; i<=right; i++){
 		int k = arr[i];
 		int j = i-1;
-		while(j >= left && arr[j] > key){
+		while(j >= left && arr[j] > k){
 			arr[j+1] = arr[j];
 			j--;
 		}
@@ -41,8 +41,8 @@ void insertionSort(int *arr, int left, int right){
 void merge(int *arr, int l, int m, int r){
 	int l1 = m-l+1;
 	int l2 = r-m;
-	int* left = (int*)malloc(len1 * sizeof(int));
-	int* right = (int*)malloc(len2 * sizeof(int));
+	int* left = (int*)malloc(l1 * sizeof(int));
+	int* right = (int*)malloc(l2 * sizeof(int));
 
 	for (int i = 0; i<l1; i++){
 		left[i] = arr[l+i];
@@ -75,10 +75,10 @@ void merge(int *arr, int l, int m, int r){
 void timSort(int *arr, int size){
 	for (int i = 0; i<size; i+=RUN){
 	//	insertionSort(arr, i, min((i+RUN-1),(n-1)));
-		insertionSort(arr, i, ((n<i+RUN)?(n-1):(i+RUN)));
+		insertionSort(arr, i, ((size<i+RUN)?(size-1):(i+RUN)));
 	}
 	for (int temp = RUN; temp<size; temp = 2*temp){
-		for(int left = 0; left<n ; left+=2*temp){
+		for(int left = 0; left<size ; left+=2*temp){
 			int mid = left+size-1;
 		//	int right = min((left+2*temp-1),(size-1));
 			int right = (size<(left+2*temp))?(size-1):(left+2*temp-1);
@@ -121,7 +121,7 @@ void addEdge(int src, int dest){
 }
 
 void sort_all(){
-	for(int i=0; i<numnode; i++){
+	for(int i=0; i<num_node; i++){
 		timSort(nodes[i]->Edgelist, nodes[i]->edges);
 	}
 }
@@ -159,8 +159,8 @@ int community_degree(int i){
 
 bool is_connected(int com, int node){
 	int left =0;
-	int right = nodes[node]->size;
-	int* arr = nodes[node]->list;
+	int right = nodes[node]->edges;
+	int* arr = nodes[node]->Edgelist;
 	while(left<=right){
 		int mid = left + (right-left)/2;
 		
@@ -241,9 +241,9 @@ void remove_frm_com(int node, int com){
 	target->count--;
 	if(target->max>2*target->count){
 		community* temcom = create_community(-1);
-		free(tempcom->list);
+		free(temcom->list);
 		temcom->count = target->count;
-		temcom->max = target->max/2
+		temcom->max = target->max/2;
 		temcom->list = (int*)malloc(sizeof(int)*(temcom->max));
 		copy_community(temcom, target);
 		destroy_community(target);
