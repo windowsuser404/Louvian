@@ -74,12 +74,14 @@ void merge(int *arr, int l, int m, int r){
 
 void timSort(int *arr, int size){
 	for (int i = 0; i<size; i+=RUN){
-		insertionSort(arr, i, min((i+RUN-1),(n-1)));
+	//	insertionSort(arr, i, min((i+RUN-1),(n-1)));
+		insertionSort(arr, i, ((n<i+RUN)?(n-1):(i+RUN)));
 	}
 	for (int temp = RUN; temp<size; temp = 2*temp){
 		for(int left = 0; left<n ; left+=2*temp){
 			int mid = left+size-1;
-			int right = min((left+2*temp-1),(size-1));
+		//	int right = min((left+2*temp-1),(size-1));
+			int right = (size<(left+2*temp))?(size-1):(left+2*temp-1);
 			if(mid < right){
 				merge(arr, left, mid, right);
 			}
@@ -94,8 +96,6 @@ Node* createNode(int i){
 	temp->community = i;
 	return temp;
 }
-
-
 
 void addEdge(int src, int dest){
 	Node* temp = nodes[src];
@@ -134,6 +134,11 @@ community* create_community(int i){
 	temp->list = (int*)malloc(temp->max*sizeof(int));
 	temp->list[0] = i;
 	return temp;
+}
+
+void destroy_community(community* com){
+	free(com->list);
+	free(com);
 }
 
 void initialise_Louvian(){
@@ -183,12 +188,6 @@ int edges_connected(int node, int neighbour){//neighbour is basically the target
 	return edge_count;
 }
 
-int change_modularity(int node, int neighbour){
-	int delQ;
-	delQ = (edges_connected(node, neighbour)-edges_connected(node, node))/(num_edges)+(nodes[node]->edges)*(community_degree(node)-community_degree(neighbour)-2*(nodes[node]->edges))/(2*num_edges*num_edges);
-	return delQ;
-}
-
 void insert_in_com(int i, int com){
 	community* target = communities[com];
 	if(target->count == target->max){
@@ -199,23 +198,64 @@ void insert_in_com(int i, int com){
 	target->count++;
 }
 
-void remove_frm_com(int i, int com){
+//void remove_frm_com(int i, int com){
+//	community* target = communities[com];
+//	int index=0;
+//	while(index<target->count){
+//		if(target->list[index] == i){
+//			break;
+//		}
+//		index++;
+//	}
+//	while(index<target->count-1){
+//		target->list[index] = target->list[index+1];
+//	}
+//	target->count--;
+//	if((target->max)>2*target->count){
+//		target->max/=2;
+//		target->list = realloc(target->list, target->max*sizeof(int));
+//	}
+//}
+
+void copy_community(community* temcom, community* target){
+	int i=0;
+	int skip=0;
+	while(i<temcom->count){
+		if(target->list[i+skip]==-1){
+			skip++;
+			continue;
+		}
+		temcom->list[i] = target->list[i+skip];
+		i++;
+	}
+}
+
+void remove_frm_com(int node, int com){
 	community* target = communities[com];
-	int index=0;
-	while(index<target->count){
-		if(target->list[index] == i){
+	for(int i=0; i<target->count;i++){
+		if(target->list[i]==node){
+			target->list[i] = -1;
 			break;
 		}
-		index++;
-	}
-	while(index<target->count-1){
-		target->list[index] = target->list[index+1];
 	}
 	target->count--;
-	if((target->max)>2*target->count){
-		target->max/=2;
-		target->list = realloc(target->list, target->max*sizeof(int));
+	if(target->max>2*target->count){
+		community* temcom = create_community(-1);
+		free(tempcom->list);
+		temcom->count = target->count;
+		temcom->max = target->max/2
+		temcom->list = (int*)malloc(sizeof(int)*(temcom->max));
+		copy_community(temcom, target);
+		destroy_community(target);
+		communities[com] = temcom;
 	}
+}
+
+
+int change_modularity(int node, int neighbour){
+	int delQ;
+	delQ = (edges_connected(node, neighbour)-edges_connected(node, node))/(num_edges)+(nodes[node]->edges)*(community_degree(node)-community_degree(neighbour)-2*(nodes[node]->edges))/(2*num_edges*num_edges);
+	return delQ;
 }
 
 void Louvian(){
