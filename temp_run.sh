@@ -1,3 +1,3 @@
 #!/bin/bash
-gcc Louvian.c -o louvian.out -g -fopenmp
-./louvian.out graph_info.txt 99
+#gcc Louvian.c -o louvian.out -g -fopenmp
+./louvian.out graph_info.txt 9999
