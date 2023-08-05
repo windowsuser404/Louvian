@@ -5,7 +5,7 @@
 #include <limits.h>
 #include <stdbool.h>
 
-#define thresh_hold 0.0001
+#define thresh_hold 0.01
 
 
 //#define DEBUG
@@ -81,7 +81,7 @@ void merge(int *arr, int l, int m, int r){
 void timSort(int *arr, int size){
 	for (int i = 0; i<size; i+=RUN){
 	//	insertionSort(arr, i, min((i+RUN-1),(n-1)));
-		insertionSort(arr, i, ((size<i+RUN)?(size-1):(i+RUN)));
+		insertionSort(arr, i, ((size<i+RUN)?(size-1):(i+RUN-1)));
 	}
 	for (int temp = RUN; temp<size; temp = 2*temp){
 		for(int left = 0; left<size ; left+=2*temp){
@@ -292,11 +292,13 @@ float change_modularity(int node, int neighbour){
 void Louvian(){
 	initialise_Louvian();
 	bool improv = true;
-	while(improv==true){
+	while(improv){
+#ifdef DEBUG
 		printf("%d is value of improv\n", improv);
+#endif
 		improv = false;
 		int* old_com = (int*)malloc(num_node*sizeof(int));
-		bool* change_community = (bool*)calloc(num_node, sizeof(bool));//to keep track if a node was changed, if changed we will have to switch communities
+	//	bool* change_community = (bool*)calloc(num_node, sizeof(bool));//to keep track if a node was changed, if changed we will have to switch communities
 		for(int i=0; i<num_node; i++){
 #ifdef DEBUG
 			printf("Going to node %d\n", i);
@@ -318,29 +320,30 @@ void Louvian(){
 			printf("%f was Q and %f is new\n",delQ, newQ);
 #endif	
 				if(newQ>delQ && newQ>thresh_hold){
-			printf("%f was Q and %f is new, moving %d from %d to %d\n",delQ, newQ, i , old_com[i], old_com[node->Edgelist[j]]);
-					printf("Improvement found\n");
 #ifdef DEBUG
 					printf("Improvement found\n\n\n\n\n\n");
 #endif
 					delQ = newQ;
 					max_com = node->Edgelist[j];
-					improv = true;
-					change_community[i] = true;
 				}
 			}
+#ifdef DEBUG
+			printf(" moving %d from %d to %d\n",i , old_com[i], max_com);
+#endif
 			node->community = max_com;
 		}
 		for(int i=0; i<num_node; i++){
-			if(change_community[i]){
 				if(nodes[i]->community!=old_com[i]){		
+					improv = true;
+#ifdef DEBUG
+					printf("Improvement found\n");
 					printf("removing %d from %d and put in %d\n",i,old_com[i],nodes[i]->community);
+#endif
 					remove_frm_com(i, old_com[i]);
 					insert_in_com(i, nodes[i]->community);
-				}
 			}
 		}
-		free(change_community);
+	//	free(change_community);
 		free(old_com);
 	}
 }
@@ -356,9 +359,10 @@ int main(int argc, char *argv[]){
         num_node = atoi(argv[2])+1;
 #ifdef DEBUG
 	printf("Value of numnodes %d\n", num_node);
+	printf("%s\n",argv[1]);
 #endif
         if(file==NULL){
-                printf("File handling error");
+                printf("File couldnt be parsed");
                 exit(0);
         }
         nodes = (Node**)malloc(num_node*sizeof(Node*));
@@ -378,7 +382,11 @@ int main(int argc, char *argv[]){
 #ifdef DEBUG
 	printf("Starts Louvian\n");
 #endif
+	float t1,t2;
+	t1 = omp_get_wtime();
 	Louvian();
-	print_coms();
+	t2 = omp_get_wtime();
+	//print_coms();
+	printf("Done in %fs\n",t2-t1);
 
 }
