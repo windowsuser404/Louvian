@@ -5,7 +5,7 @@
 #include <limits.h>
 #include <stdbool.h>
 
-#define thresh_hold 0.001
+#define thresh_hold 0.01
 
 
 //#define DEBUG
@@ -359,9 +359,10 @@ int main(int argc, char *argv[]){
         num_node = atoi(argv[2])+1;
 #ifdef DEBUG
 	printf("Value of numnodes %d\n", num_node);
+	printf("%s\n",argv[1]);
 #endif
         if(file==NULL){
-                printf("File handling error");
+                printf("File couldnt be parsed");
                 exit(0);
         }
         nodes = (Node**)malloc(num_node*sizeof(Node*));
@@ -381,7 +382,11 @@ int main(int argc, char *argv[]){
 #ifdef DEBUG
 	printf("Starts Louvian\n");
 #endif
+	float t1,t2;
+	t1 = omp_get_wtime();
 	Louvian();
-	print_coms();
+	t2 = omp_get_wtime();
+	//print_coms();
+	printf("Done in %fs\n",t2-t1);
 
 }
